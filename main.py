@@ -4,11 +4,10 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-def load_settings():
-    load_dotenv()
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if api_key == None:
-        raise RuntimeError("Please find my keys!")
+load_dotenv()
+api_key = os.environ.get("GEMINI_API_KEY")
+if api_key == None:
+    raise RuntimeError("Please find my keys!")
 
 client = genai.Client(api_key=api_key)
 
