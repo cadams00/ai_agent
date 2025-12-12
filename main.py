@@ -39,6 +39,7 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(description="Simple Gemini chatbot")
     parser.add_argument("prompt", type=str, help="User prompt")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     return parser.parse_args()
 
 
@@ -72,14 +73,24 @@ def main() -> None:
     )
 
     # Metrics (if we got them)
-    if prompt_tokens is not None:
-        print(f"Prompt tokens:   {prompt_tokens}")
-    if response_tokens is not None:
-        print(f"Response tokens: {response_tokens}")
+    # if prompt_tokens is not None:
+    #     print(f"Prompt tokens:   {prompt_tokens}")
+    # if response_tokens is not None:
+    #     print(f"Response tokens: {response_tokens}")
 
-    print("Response:")
-    print(reply)
+    # print("Response:")
+    # print(reply)
 
+    if args.verbose:
+        print(f"User prompt: {args.prompt}")
+        if prompt_tokens is not None:
+            print(f"Prompt tokens:   {prompt_tokens}")
+        if response_tokens is not None:
+            print(f"Response tokens: {response_tokens}")
+        print(reply)
+    else:
+        print("Response:")
+        print(reply)
 
 if __name__ == "__main__":
     main()
