@@ -1,7 +1,6 @@
 from functions.get_files_info import get_files_info
 
 command_input = [["calculator", "."], ["calculator", "pkg"], ["calculator", "/bin"], ["calculator", "../"]]
-# command_input = [["calculator", "."]]
 
 def test_get_files(commands: list) -> str:
     for command in commands:
@@ -19,8 +18,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Result for current directory:
-#   - main.py: file_size=719 bytes, is_dir=False
-#   - tests.py: file_size=1331 bytes, is_dir=False
-#   - pkg: file_size=44 bytes, is_dir=True
