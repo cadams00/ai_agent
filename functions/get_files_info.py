@@ -1,27 +1,33 @@
 import os
 
-working_directory = "/home/chris/programming/bootdotdev/ai_agent"
-
-def get_files_info(working_directory=working_directory, directory="."):
-    if not os.path.abspath(directory).startswith(working_directory):
+working_directory = "/home/chris/programming/bootdotdev/ai_agent/"
+# "calculator", "."
+def get_files_info(working_directory, directory="."):
+    abs_directory = os.path.abspath(os.path.join(working_directory, directory))
+    abs_working_directory = os.path.abspath(working_directory)
+    # print(directory, abs_directory, working_directory, abs_working_directory)
+    # print(os.path.join(working_directory, directory))
+    # if not abs_directory.startswith(abs_working_directory):
+    if not abs_directory.startswith(abs_working_directory):
         # print(f'Error: Cannot list "{directory}" as it is outside the permitted working directory')
         return f'Error: Cannot list "{directory}" as it is outside the permitted working directory'
-    if not os.path.isdir(directory):
+    if not os.path.isdir(os.path.join(abs_working_directory,abs_directory)):
         # print(os.path.isdir(directory))
         return f'Error: "{directory}" is not a directory'
     try:
         def get_data_for_files(files: list) -> list:
             concat_ret_list = []
             for file in files:
-                size = os.path.getsize(file)
-                dir = os.path.isdir(file)
+                size = os.path.getsize(abs_directory + "/" + file)
+                dir = os.path.isdir(abs_directory + "/" + file)
                 concat_ret_list.append(f"- {file}: file_size={size}, is_dir={dir}")
             joined = "\n".join(concat_ret_list)
             # print(joined)
             return joined
-        # print(working_directory, os.path.abspath(directory))
+        # print(os.path.join(abs_working_directory,directory))
+        # print(working_directory, directory)
         # print(get_data_for_files(os.listdir(directory)))
-        return get_data_for_files(os.listdir(directory))
+        return get_data_for_files(os.listdir(os.path.join(abs_working_directory,directory)))
     except Exception as e:
         print(f"ERROR: {e}")
 
@@ -30,9 +36,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-# - README.md: file_size=1032 bytes, is_dir=False
-# - src: file_size=128 bytes, is_dir=True
-# - package.json: file_size=1234 bytes, is_dir=False
