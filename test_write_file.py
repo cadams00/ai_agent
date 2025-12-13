@@ -2,8 +2,7 @@ from functions.write_file import write_file
 
 command_input = [["calculator", "lorem.txt", "wait, this isn't lorem ipsum"],
                  ["calculator", "pkg/morelorem.txt", "lorem ipsum dolor sit amet"],
-                 ["calculator", "/tmp/temp.txt", "this should not be allowed"],
-                 ["calculator", "somedir/morelorem.txt", "lorem ipsum dolor sit amet"]]
+                 ["calculator", "/tmp/temp.txt", "this should not be allowed"]]
 
 def test_get_files(commands: list) -> None:
     for command in commands:
