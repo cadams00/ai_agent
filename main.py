@@ -4,11 +4,16 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from prompts import system_prompt
+from functions.get_files_info import schema_get_files_info
 
 
 ENV_VAR_NAME = "GEMINI_API_KEY"
 DEFAULT_MODEL = "gemini-2.5-flash"
 
+available_functions = types.Tool(
+    function_declarations=[schema_get_files_info],
+)
 
 @dataclass
 class Settings:
@@ -43,22 +48,30 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def generate_reply(client: genai.Client, model: str, prompt: str) -> tuple[str, int | None, int | None]:
+def generate_reply(client: genai.Client, model: str, prompt: str) -> tuple[str, int | None, int | None, list | None]:
     """Send a prompt to the model and return (text, prompt_tokens, response_tokens)."""
     messages = [types.Content(role="user", parts=[types.Part(text=prompt)])]
 
     response = client.models.generate_content(
         model=model,
         contents=messages,
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        )
     )
 
-    text = response.text or ""
+    calls = response.function_calls
+
+    if calls:
+        text = ""
+    else:
+        text = response.text or ""
 
     usage = response.usage_metadata
     prompt_tokens = getattr(usage, "prompt_token_count", None) if usage else None
     response_tokens = getattr(usage, "candidates_token_count", None) if usage else None
 
-    return text, prompt_tokens, response_tokens
+    return text, prompt_tokens, response_tokens, calls
 
 
 def main() -> None:
@@ -66,20 +79,11 @@ def main() -> None:
     settings = load_settings()
     client = build_client(settings)
 
-    reply, prompt_tokens, response_tokens = generate_reply(
+    reply, prompt_tokens, response_tokens, calls= generate_reply(
         client=client,
         model=settings.model,
         prompt=args.prompt,
     )
-
-    # Metrics (if we got them)
-    # if prompt_tokens is not None:
-    #     print(f"Prompt tokens:   {prompt_tokens}")
-    # if response_tokens is not None:
-    #     print(f"Response tokens: {response_tokens}")
-
-    # print("Response:")
-    # print(reply)
 
     if args.verbose:
         print(f"User prompt: {args.prompt}")
@@ -89,8 +93,12 @@ def main() -> None:
             print(f"Response tokens: {response_tokens}")
         print(reply)
     else:
-        print("Response:")
-        print(reply)
+        if calls:
+            for call in calls:
+                print(f"Calling function: {call.name}({call.args})")
+        else:
+            print("Response:")
+            print(reply)
 
 if __name__ == "__main__":
     main()
