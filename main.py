@@ -5,19 +5,10 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from prompts import system_prompt
-from functions.get_files_info import schema_get_files_info
-from functions.get_file_content import schema_get_file_content
-from functions.run_python_file import schema_run_python_file
-from functions.write_file import schema_write_file
-
+from call_function import available_functions, call_function
 
 ENV_VAR_NAME = "GEMINI_API_KEY"
 DEFAULT_MODEL = "gemini-2.5-flash"
-
-available_functions = types.Tool(
-    function_declarations=[schema_get_files_info, schema_get_file_content,
-                           schema_run_python_file, schema_write_file],
-)
 
 @dataclass
 class Settings:
@@ -88,21 +79,35 @@ def main() -> None:
         model=settings.model,
         prompt=args.prompt,
     )
-
-    if args.verbose:
-        print(f"User prompt: {args.prompt}")
-        if prompt_tokens is not None:
-            print(f"Prompt tokens:   {prompt_tokens}")
-        if response_tokens is not None:
-            print(f"Response tokens: {response_tokens}")
-        print(reply)
-    else:
-        if calls:
-            for call in calls:
-                print(f"Calling function: {call.name}({call.args})")
+    if not calls:
+        if args.verbose:
+            print(f"User prompt: {args.prompt}")
+            if prompt_tokens is not None:
+                print(f"Prompt tokens:   {prompt_tokens}")
+            if response_tokens is not None:
+                print(f"Response tokens: {response_tokens}")
+            print(reply)
         else:
             print("Response:")
             print(reply)
+        return
 
+    function_responses = []
+    for call in calls:
+        function_call_result = call_function(call, args.verbose)
+
+        if not function_call_result.parts or not function_call_result.parts[0].function_response:
+            raise Exception("empty function call result")
+
+        part = function_call_result.parts[0]
+        function_responses.append(part)
+
+        if args.verbose:
+            if part.function_response and part.function_response.response is not None:
+                print(f"-> {part.function_response.response}")
+
+    if not function_responses:
+        raise Exception("no function responses generated, exiting.")
+    
 if __name__ == "__main__":
     main()

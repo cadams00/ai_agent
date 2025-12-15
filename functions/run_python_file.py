@@ -8,11 +8,11 @@ schema_run_python_file = types.FunctionDeclaration(
     parameters=types.Schema(
         type=types.Type.OBJECT,
         properties={
-            "directory": types.Schema(
+            "working_directory": types.Schema(
                 type=types.Type.STRING,
                 description="The directory to run files from, relative to the working directory.",
             ),
-            "file": types.Schema(
+            "file_path": types.Schema(
                 type=types.Type.STRING,
                 description="The python file that you want to run",
             ),
@@ -40,10 +40,24 @@ def run_python_file(working_directory, file_path, args=[]):
             capture_output=True,
             text=True
         )
+
         if result.returncode != 0:
-            return f"STDOUT: {result.stdout} STDERR: {result.stderr} Process exited with code {result.returncode}"
-        if not result.stdout:
-            return f"No output produced" 
-        return f"STDOUT: {result.stdout}STDERR: {result.stderr}"
+            return (
+                f"STDOUT: {result.stdout} "
+                f"STDERR: {result.stderr} "
+                f"Process exited with code {result.returncode}"
+            )
+
+        output = ""
+        if result.stdout:
+            output += f"STDOUT: {result.stdout}"
+        if result.stderr:
+            output += f"STDERR: {result.stderr}"
+
+        if not output:
+            return "No output produced"
+
+        return output
+
     except Exception as e:
         return (f"Error: executing Python file: {e}")
