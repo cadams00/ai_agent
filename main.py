@@ -43,9 +43,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def generate_reply(client: genai.Client, model: str, prompt: str) -> tuple[str, int | None, int | None, list | None]:
-    """Send a prompt to the model and return (text, prompt_tokens, response_tokens)."""
-    messages = [types.Content(role="user", parts=[types.Part(text=prompt)])]
+def generate_reply(client: genai.Client, model: str, messages: list[types.Content], verbose: bool):
 
     response = client.models.generate_content(
         model=model,
@@ -61,40 +59,28 @@ def generate_reply(client: genai.Client, model: str, prompt: str) -> tuple[str, 
         text = ""
     else:
         text = response.text or ""
-
+    candidates = response.candidates
     usage = response.usage_metadata
     prompt_tokens = getattr(usage, "prompt_token_count", None) if usage else None
     response_tokens = getattr(usage, "candidates_token_count", None) if usage else None
 
-    return text, prompt_tokens, response_tokens, calls
-
-
-def main() -> None:
-    args = parse_args()
-    settings = load_settings()
-    client = build_client(settings)
-
-    reply, prompt_tokens, response_tokens, calls= generate_reply(
-        client=client,
-        model=settings.model,
-        prompt=args.prompt,
-    )
     if not calls:
-        if args.verbose:
-            print(f"User prompt: {args.prompt}")
+        if verbose:
+            user_prompt = messages[0].parts[0].text if messages and messages[0].parts else ""
+            print(f"User prompt: {user_prompt}")
             if prompt_tokens is not None:
                 print(f"Prompt tokens:   {prompt_tokens}")
             if response_tokens is not None:
                 print(f"Response tokens: {response_tokens}")
-            print(reply)
+            print(text)
         else:
             print("Response:")
-            print(reply)
+            print(text)
         return
 
     function_responses = []
     for call in calls:
-        function_call_result = call_function(call, args.verbose)
+        function_call_result = call_function(call, verbose)
 
         if not function_call_result.parts or not function_call_result.parts[0].function_response:
             raise Exception("empty function call result")
@@ -102,12 +88,21 @@ def main() -> None:
         part = function_call_result.parts[0]
         function_responses.append(part)
 
-        if args.verbose:
+        if verbose:
             if part.function_response and part.function_response.response is not None:
                 print(f"-> {part.function_response.response}")
 
     if not function_responses:
         raise Exception("no function responses generated, exiting.")
+    
+
+def main() -> None:
+    args = parse_args()
+    settings = load_settings()
+    client = build_client(settings)
+    messages = [types.Content(role="user", parts=[types.Part(text=args.prompt)])]
+
+    generate_reply(client=client, model=settings.model, messages=messages, verbose=args.verbose)
     
 if __name__ == "__main__":
     main()
