@@ -53,13 +53,17 @@ def generate_reply(client: genai.Client, model: str, messages: list[types.Conten
         )
     )
 
+    candidates = response.candidates
+    for candidate in candidates:
+        cand_cont = candidate.content
+        messages.append(cand_cont)
+
     calls = response.function_calls
 
     if calls:
         text = ""
     else:
         text = response.text or ""
-    candidates = response.candidates
     usage = response.usage_metadata
     prompt_tokens = getattr(usage, "prompt_token_count", None) if usage else None
     response_tokens = getattr(usage, "candidates_token_count", None) if usage else None
@@ -72,11 +76,8 @@ def generate_reply(client: genai.Client, model: str, messages: list[types.Conten
                 print(f"Prompt tokens:   {prompt_tokens}")
             if response_tokens is not None:
                 print(f"Response tokens: {response_tokens}")
-            print(text)
-        else:
-            print("Response:")
-            print(text)
-        return
+            return text
+        return text
 
     function_responses = []
     for call in calls:
@@ -95,14 +96,27 @@ def generate_reply(client: genai.Client, model: str, messages: list[types.Conten
     if not function_responses:
         raise Exception("no function responses generated, exiting.")
     
+    messages.append(types.Content(role="user", parts=function_responses))
+    
+    return None 
+    
 
 def main() -> None:
     args = parse_args()
     settings = load_settings()
     client = build_client(settings)
     messages = [types.Content(role="user", parts=[types.Part(text=args.prompt)])]
+    final_text = None
 
-    generate_reply(client=client, model=settings.model, messages=messages, verbose=args.verbose)
+    for i in range(20):
+        final_text = generate_reply(client=client, model=settings.model, messages=messages, verbose=args.verbose)
+        if final_text:
+            print("Final response:")
+            print(final_text)
+            break
     
+    if not final_text:
+        print("ERROR: Reached 20 iteration limit")
+
 if __name__ == "__main__":
     main()
